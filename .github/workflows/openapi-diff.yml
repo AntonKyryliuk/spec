@@ -26,37 +26,24 @@ jobs:
 
       - name: Check OpenAPI files
         run: |
-          BASE_FILE="${{ github.workspace }}/base/openapi-base.yaml"
-          CURRENT_FILE="${{ github.workspace }}/openapi.yaml"
-
-          if [ ! -f "$BASE_FILE" ]; then
-            echo "❌ Base spec not found: $BASE_FILE"
-            exit 1
-          fi
-
-          if [ ! -f "$CURRENT_FILE" ]; then
-            echo "❌ Current spec not found: $CURRENT_FILE"
-            exit 1
-          fi
+          test -f spec/base/openapi-base.yaml || (echo "❌ Base spec not found")
+          test -f openapi.yaml || (echo "❌ Current spec not found")
 
       - name: Generate OpenAPI Diff Reports
         run: |
-          BASE_FILE="${{ github.workspace }}/spec/base/openapi-base.yaml"
-          CURRENT_FILE="${{ github.workspace }}/openapi.yaml"
-
-          openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown "${{ github.workspace }}/openapi-diff-report.md" || true
-          openapi-diff "$BASE_FILE" "$CURRENT_FILE" html "${{ github.workspace }}/openapi-diff-report.html" || true
+          openapi-diff spec/base/openapi-base.yaml openapi.yaml markdown openapi-diff-report.md || true
+          openapi-diff spec/base/openapi-base.yaml openapi.yaml html openapi-diff-report.html || true
 
       - name: Show Diff Report
         run: |
           echo "✅ OpenAPI diff report generated:"
-          head -n 30 "${{ github.workspace }}/openapi-diff-report.md"
+          head -n 30 openapi-diff-report.md
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: openapi-diff-report
           path: |
-            ${{ github.workspace }}/openapi-diff-report.md
-            ${{ github.workspace }}/openapi-diff-report.html
-            ${{ github.workspace }}/openapi.yaml
+            openapi-diff-report.md
+            openapi-diff-report.html
+            openapi.yaml
