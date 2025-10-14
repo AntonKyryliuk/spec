@@ -25082,7 +25082,7 @@ paths:
       tags:
         - lofMarketPlaceSellerRatingsRepositoryV1
       description: Plus/Minus/Report Rating
-      operationId: PutV1SellerRatingsRatingId
+      operationId: PutV1SellerRatingsRatingId1
       consumes:
         - application/json
         - application/xml
