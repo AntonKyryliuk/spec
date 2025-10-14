@@ -54,18 +54,15 @@ jobs:
           CURRENT_FILE="${{ github.workspace }}/spec/openapi.yaml"
 
           echo "🔍 Running OpenAPI Diff with increased Node.js memory..."
-          export NODE_OPTIONS="--max-old-space-size=8192"
+          export NODE_OPTIONS="--max-old-space-size=8192"  # 8 GB
 
-          # Markdown report
+          set -o pipefail
           openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown "${{ github.workspace }}/openapi-diff-report.md" 2>&1 | tee "${{ github.workspace }}/openapi-diff.log"
-
-          # HTML report
-          openapi-diff "$BASE_FILE" "$CURRENT_FILE" html "${{ github.workspace }}/openapi-diff-report.html" 2>&1 | tee -a "${{ github.workspace }}/openapi-diff.log"
 
       # 7. Show Diff Report
       - name: Show Diff Report
         run: |
-          echo "✅ OpenAPI diff report generated:"
+          echo "✅ OpenAPI diff report (first 30 lines):"
           head -n 30 "${{ github.workspace }}/openapi-diff-report.md"
 
       # 8. Upload Artifacts
@@ -75,6 +72,4 @@ jobs:
           name: openapi-diff-report
           path: |
             ${{ github.workspace }}/openapi-diff-report.md
-            ${{ github.workspace }}/openapi-diff-report.html
-            ${{ github.workspace }}/spec/openapi.yaml
             ${{ github.workspace }}/openapi-diff.log
