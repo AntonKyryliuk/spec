@@ -54,7 +54,7 @@ jobs:
           CURRENT_FILE="${{ github.workspace }}/spec/openapi.yaml"
 
           echo "🔍 Running OpenAPI Diff with increased Node.js memory..."
-          export NODE_OPTIONS="--max-old-space-size=4096"
+          export NODE_OPTIONS="--max-old-space-size=8192"
 
           # Markdown report
           openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown "${{ github.workspace }}/openapi-diff-report.md" 2>&1 | tee "${{ github.workspace }}/openapi-diff.log"
