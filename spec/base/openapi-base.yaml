@@ -24713,7 +24713,7 @@ paths:
       description: >
         Retrieve Seller Ratings matching the
         specified criteria.
-      operationId: GetV1SellerRatingsRatingId
+      operationId: GetV1SellerRatingsRatingId24716
       consumes:
         - application/json
         - application/xml
