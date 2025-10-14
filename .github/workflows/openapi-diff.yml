@@ -1,0 +1,51 @@
+name: OpenAPI Diff Report
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  openapi-diff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Docker CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+
+      - name: Check OpenAPI files
+        run: |
+          test -f spec/base/openapi-base.yaml || (echo "❌ Base spec not found" && exit 1)
+          test -f openapi.yaml || (echo "❌ Current spec not found" && exit 1)
+
+      - name: Generate OpenAPI Diff Reports
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
+            openapi-diff /work/spec/base/openapi-base.yaml /work/openapi.yaml \
+            --format markdown > openapi-diff-report.md || true
+
+          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
+            openapi-diff /work/spec/base/openapi-base.yaml /work/openapi.yaml \
+            --format html > openapi-diff-report.html || true
+
+      - name: Show Diff Report
+        run: |
+          echo "✅ OpenAPI diff report generated:"
+          head -n 30 openapi-diff-report.md
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: openapi-diff-report
+          path: |
+            openapi-diff-report.md
+            openapi-diff-report.html
+            openapi.yaml
