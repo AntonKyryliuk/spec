@@ -26,7 +26,7 @@ jobs:
 
       - name: Check OpenAPI files
         run: |
-          BASE_FILE="${{ github.workspace }}/spec/base/openapi-base.yaml"
+          BASE_FILE="${{ github.workspace }}/base/openapi-base.yaml"
           CURRENT_FILE="${{ github.workspace }}/openapi.yaml"
 
           if [ ! -f "$BASE_FILE" ]; then
