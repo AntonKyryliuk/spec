@@ -13,20 +13,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2. Change to repository root
       - name: Change to repository root
         run: cd ${{ github.workspace }}
 
+      # 3. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
+      # 4. Install openapi-diff
       - name: Install openapi-diff
         run: npm install -g openapi-diff
 
+      # 5. Check OpenAPI files
       - name: Check OpenAPI files
         run: |
           BASE_FILE="${{ github.workspace }}/spec/base/openapi-base.yaml"
@@ -42,21 +47,28 @@ jobs:
             exit 1
           fi
 
+      # 6. Generate OpenAPI Diff Reports with increased memory
       - name: Generate OpenAPI Diff Reports
         run: |
           BASE_FILE="${{ github.workspace }}/spec/base/openapi-base.yaml"
           CURRENT_FILE="${{ github.workspace }}/spec/openapi.yaml"
 
+          echo "🔍 Running OpenAPI Diff with increased Node.js memory..."
           export NODE_OPTIONS="--max-old-space-size=4096"
 
-          openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown "${{ github.workspace }}/openapi-diff-report.md"
-          openapi-diff "$BASE_FILE" "$CURRENT_FILE" html "${{ github.workspace }}/openapi-diff-report.html"
+          # Markdown report
+          openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown "${{ github.workspace }}/openapi-diff-report.md" 2>&1 | tee "${{ github.workspace }}/openapi-diff.log"
 
+          # HTML report
+          openapi-diff "$BASE_FILE" "$CURRENT_FILE" html "${{ github.workspace }}/openapi-diff-report.html" 2>&1 | tee -a "${{ github.workspace }}/openapi-diff.log"
+
+      # 7. Show Diff Report
       - name: Show Diff Report
         run: |
           echo "✅ OpenAPI diff report generated:"
           head -n 30 "${{ github.workspace }}/openapi-diff-report.md"
 
+      # 8. Upload Artifacts
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -65,3 +77,4 @@ jobs:
             ${{ github.workspace }}/openapi-diff-report.md
             ${{ github.workspace }}/openapi-diff-report.html
             ${{ github.workspace }}/spec/openapi.yaml
+            ${{ github.workspace }}/openapi-diff.log
