@@ -47,6 +47,7 @@ jobs:
           BASE_FILE="${{ github.workspace }}/spec/base/openapi-base.yaml"
           CURRENT_FILE="${{ github.workspace }}/spec/openapi.yaml"
 
+          export NODE_OPTIONS="--max-old-space-size=4096"
           openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown "${{ github.workspace }}/openapi-diff-report.md" || true
           openapi-diff "$BASE_FILE" "$CURRENT_FILE" html "${{ github.workspace }}/openapi-diff-report.html" || true
 
