@@ -16,10 +16,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Docker CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install openapi-diff
+        run: npm install -g openapi-diff
 
       - name: Check OpenAPI files
         run: |
@@ -28,13 +31,8 @@ jobs:
 
       - name: Generate OpenAPI Diff Reports
         run: |
-          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
-            openapi-diff /work/spec/base/openapi-base.yaml /work/openapi.yaml \
-            --format markdown > openapi-diff-report.md || true
-
-          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
-            openapi-diff /work/spec/base/openapi-base.yaml /work/openapi.yaml \
-            --format html > openapi-diff-report.html || true
+          openapi-diff spec/base/openapi-base.yaml openapi.yaml --format markdown > openapi-diff-report.md || true
+          openapi-diff spec/base/openapi-base.yaml openapi.yaml --format html > openapi-diff-report.html || true
 
       - name: Show Diff Report
         run: |
