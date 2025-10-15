@@ -24747,7 +24747,7 @@ paths:
       tags:
         - lofMarketPlaceSellerRatingsRepositoryV1
       description: Save Rating
-      operationId: PutV1SellerRatingsRatingId
+      operationId: PutV1SellerRatingsRatingId1
       consumes:
         - application/json
         - application/xml
