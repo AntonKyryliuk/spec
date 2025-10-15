@@ -16,13 +16,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Docker CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-
-      - name: Change to repository root
-        run: cd ${{ github.workspace }}
+      - name: Check Docker version
+        run: docker --version  # (опционально, можно удалить)
 
       - name: Check OpenAPI files
         run: |
@@ -45,12 +40,12 @@ jobs:
           CURRENT_FILE="${{ github.workspace }}/spec/openapi.yaml"
 
           docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
-          openapi-diff "$BASE_FILE" "$CURRENT_FILE" \
-          --format markdown > openapi-diff-report.md || true
+            openapi-diff "$BASE_FILE" "$CURRENT_FILE" \
+            --format markdown > openapi-diff-report.md || true
 
           docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
-          openapi-diff "$BASE_FILE" "$CURRENT_FILE" \
-          --format html > openapi-diff-report.html || true
+            openapi-diff "$BASE_FILE" "$CURRENT_FILE" \
+            --format html > openapi-diff-report.html || true
 
       - name: Show Diff Report
         run: |
