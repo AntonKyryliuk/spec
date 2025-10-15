@@ -17,7 +17,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Проверяем наличие файлов
+      # 2️⃣ Устанавливаем Java 18
+      - name: Setup Java 18
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 18
+
+      # 3️⃣ Устанавливаем Python для валидации
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # 4️⃣ Устанавливаем openapi-spec-validator
+      - run: pip install openapi-spec-validator
+
+      # 5️⃣ Проверяем наличие файлов
       - name: Validate OpenAPI/Swagger files
         run: |
           BASE_FILE="spec/base/openapi-base.yaml"
@@ -34,7 +50,7 @@ jobs:
           done
           echo "✅ Все файлы найдены и не пустые."
 
-      # 3️⃣ Проверка ключа swagger/openapi
+      # 6️⃣ Проверяем ключ swagger/openapi
       - name: Validate OpenAPI keys
         run: |
           BASE_FILE="spec/base/openapi-base.yaml"
@@ -47,42 +63,49 @@ jobs:
           done
           echo "✅ Ключи openapi/swagger найдены."
 
-      # 4️⃣ Валидируем файлы через openapi-spec-validator
-      - name: Setup Python and validate
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - run: |
-          pip install openapi-spec-validator
-          echo "🔍 Валидируем base file..."
+      # 7️⃣ Валидируем файлы через openapi-spec-validator
+      - name: Validate OpenAPI spec syntax
+        run: |
           openapi-spec-validator spec/base/openapi-base.yaml
-          echo "🔍 Валидируем current file..."
           openapi-spec-validator spec/openapi.yaml
           echo "✅ OpenAPI файлы прошли валидацию."
 
-      # 5️⃣ Генерация diff-отчётов через Docker
+      # 8️⃣ Скачиваем и распаковываем openapi-diff 2.1.4
+      - name: Download and unzip openapi-diff 2.1.4
+        run: |
+          wget -O openapi-diff-2.1.4.zip https://github.com/OpenAPITools/openapi-diff/archive/refs/tags/2.1.4.zip
+          unzip openapi-diff-2.1.4.zip
+          # Путь к JAR-файлу после сборки Maven
+          echo "✅ Архив распакован"
+
+      # 9️⃣ Сборка JAR через Maven
+      - name: Build openapi-diff-cli
+        run: |
+          cd openapi-diff-2.1.4
+          ./mvnw clean package -DskipTests
+          cd ..
+          echo "✅ JAR собран"
+
+      # 🔟 Генерация diff-отчётов
       - name: Generate OpenAPI Diff Reports
         run: |
-          echo "🚀 Генерируем OpenAPI diff отчёты..."
-          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:2.1.4 \
-            openapi-diff /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml \
-            markdown --fail-on-incompatible true > ${{ github.workspace }}/openapi-diff-report.md || true
-          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:2.1.4 \
-            openapi-diff /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml \
-            html --fail-on-incompatible true > ${{ github.workspace }}/openapi-diff-report.html || true
+          java -jar openapi-diff-2.1.4/openapi-diff-cli/target/openapi-diff-cli-2.1.4-all.jar \
+            spec/base/openapi-base.yaml spec/openapi.yaml  markdown > openapi-diff-report.md || true
+          java -jar openapi-diff-2.1.4/openapi-diff-cli/target/openapi-diff-cli-2.1.4-all.jar \
+            spec/base/openapi-base.yaml spec/openapi.yaml  html > openapi-diff-report.html || true
 
-      # 6️⃣ Показываем первые строки Markdown отчёта
+      # 1️⃣1️⃣ Показываем первые строки Markdown отчёта
       - name: Show Diff Report Preview
         if: always()
         run: |
           echo "✅ OpenAPI diff report (first 30 lines):"
-          head -n 30 "${{ github.workspace }}/openapi-diff-report.md" || echo "⚠️ No diff file generated"
+          head -n 30 openapi-diff-report.md || echo "⚠️ No diff file generated"
 
-      # 7️⃣ Загружаем отчёты как артефакты
+      # 1️⃣2️⃣ Загружаем отчёты как артефакты
       - name: Upload Diff Reports
         uses: actions/upload-artifact@v4
         with:
           name: openapi-diff-report
           path: |
-            ${{ github.workspace }}/openapi-diff-report.md
-            ${{ github.workspace }}/openapi-diff-report.html
+            openapi-diff-report.md
+            openapi-diff-report.html
