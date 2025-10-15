@@ -42,7 +42,7 @@ jobs:
           done
           echo "✅ Все файлы найдены и не пустые."
 
-      # 4️⃣ Проверка наличия ключа openapi: или swagger:
+      # 4️⃣ Проверка ключа openapi: или swagger:
       - name: Validate OpenAPI keys
         run: |
           BASE_FILE="spec/base/openapi-base.yaml"
@@ -56,7 +56,20 @@ jobs:
           done
           echo "✅ Все файлы содержат корректный ключ openapi: или swagger:"
 
-      # 5️⃣ Проверка доступности файлов внутри контейнера
+      # 5️⃣ Валидация файлов с openapi-spec-validator
+      - name: Validate OpenAPI spec syntax
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - run: |
+          pip install openapi-spec-validator
+          echo "🔍 Валидируем base file..."
+          openapi-spec-validator spec/base/openapi-base.yaml
+          echo "🔍 Валидируем current file..."
+          openapi-spec-validator spec/openapi.yaml
+          echo "✅ OpenAPI файлы прошли валидацию."
+
+      # 6️⃣ Проверка доступности файлов внутри контейнера
       - name: Validate OpenAPI files inside Docker
         run: |
           echo "🐳 Проверяем файлы внутри контейнера..."
@@ -71,7 +84,7 @@ jobs:
             echo '✅ Файлы доступны внутри контейнера.'
           "
 
-      # 6️⃣ Генерация diff-отчётов
+      # 7️⃣ Генерация diff-отчётов
       - name: Generate OpenAPI Diff Reports
         run: |
           echo "🚀 Генерируем OpenAPI diff отчёты..."
@@ -86,14 +99,14 @@ jobs:
             openapi-diff /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml \
             html --fail-on-incompatible true > ${{ github.workspace }}/openapi-diff-report.html || true
 
-      # 7️⃣ Показываем первые строки Markdown отчёта
+      # 8️⃣ Показываем первые строки Markdown отчёта
       - name: Show Diff Report Preview
         if: always()
         run: |
           echo "✅ OpenAPI diff report (first 30 lines):"
           head -n 30 "${{ github.workspace }}/openapi-diff-report.md" || echo "⚠️ No diff file generated"
 
-      # 8️⃣ Загружаем отчёты как артефакты
+      # 9️⃣ Загружаем отчёты как артефакты
       - name: Upload Diff Reports
         uses: actions/upload-artifact@v4
         with:
