@@ -25052,7 +25052,7 @@ paths:
       description: >
         Retrieve Seller Ratings matching the
         specified criteria.
-      operationId: GetV1SellerRatingsRatingId
+      operationId: GetV1SellerRatingsRatingId1
       consumes:
         - application/json
         - application/xml
@@ -25082,7 +25082,7 @@ paths:
       tags:
         - lofMarketPlaceSellerRatingsRepositoryV1
       description: Plus/Minus/Report Rating
-      operationId: PutV1SellerRatingsRatingId
+      operationId: PutV1SellerRatingsRatingId1
       consumes:
         - application/json
         - application/xml
