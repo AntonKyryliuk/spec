@@ -13,43 +13,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Клонируем репозиторий
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2️⃣ Проверяем, что Docker доступен
       - name: Check Docker
         run: docker --version
 
-      - name: Validate OpenAPI files
+      # 3️⃣ Проверяем наличие нужных файлов на runner-е
+      - name: Validate OpenAPI files (host)
         run: |
+          echo "📁 Проверяем наличие файлов в репозитории..."
+          ls -R spec || (echo "❌ Папка spec не найдена" && exit 1)
+
           if [ ! -f "spec/base/openapi-base.yaml" ]; then
             echo "❌ Base spec not found: spec/base/openapi-base.yaml"
             exit 1
           fi
+
           if [ ! -f "spec/openapi.yaml" ]; then
             echo "❌ Current spec not found: spec/openapi.yaml"
             exit 1
           fi
+          echo "✅ Все OpenAPI-файлы найдены на runner-е."
 
+      # 4️⃣ Проверяем, что файлы доступны внутри контейнера
+      - name: Validate OpenAPI files inside Docker
+        run: |
+          echo "🐳 Проверяем, что файлы видны внутри контейнера..."
+          docker run --rm -v ${{ github.workspace }}:/work alpine sh -c "
+            echo 'Содержимое /work:' && ls -R /work/spec || exit 1
+            if [ ! -f /work/spec/base/openapi-base.yaml ]; then
+              echo '❌ Base spec not found inside container'
+              exit 1
+            fi
+            if [ ! -f /work/spec/openapi.yaml ]; then
+              echo '❌ Current spec not found inside container'
+              exit 1
+            fi
+            echo '✅ Все файлы доступны внутри контейнера.'
+          "
+
+      # 5️⃣ Генерируем отчёты diff
       - name: Generate OpenAPI Diff Reports
         run: |
-          echo "🚀 Generating OpenAPI diff reports..."
-
-          # Markdown report
+          echo "🚀 Генерируем OpenAPI diff отчёты..."
           docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
             openapi-diff /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml \
             markdown ${{ github.workspace }}/openapi-diff-report.md || true
 
-          # HTML report
           docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
             openapi-diff /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml \
             html ${{ github.workspace }}/openapi-diff-report.html || true
 
+      # 6️⃣ Показываем первые строки отчёта
       - name: Show Diff Report Preview
         if: always()
         run: |
           echo "✅ OpenAPI diff report (first 30 lines):"
           head -n 30 "${{ github.workspace }}/openapi-diff-report.md" || echo "⚠️ No diff file generated"
 
+      # 7️⃣ Загружаем отчёты как артефакты
       - name: Upload Diff Reports
         uses: actions/upload-artifact@v4
         with:
