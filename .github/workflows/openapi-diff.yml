@@ -27,41 +27,48 @@ jobs:
           echo "📁 Проверяем наличие файлов в репозитории..."
           ls -R spec || (echo "❌ Папка spec не найдена" && exit 1)
 
-          if [ ! -f "spec/base/openapi-base.yaml" ]; then
-            echo "❌ Base spec not found: spec/base/openapi-base.yaml"
-            exit 1
-          fi
+          BASE_FILE="spec/base/openapi-base.yaml"
+          CURRENT_FILE="spec/openapi.yaml"
 
-          if [ ! -f "spec/openapi.yaml" ]; then
-            echo "❌ Current spec not found: spec/openapi.yaml"
-            exit 1
-          fi
-          echo "✅ Все OpenAPI-файлы найдены на runner-е."
+          for f in "$BASE_FILE" "$CURRENT_FILE"; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Файл не найден: $f"
+              exit 1
+            fi
+            if [ ! -s "$f" ]; then
+              echo "❌ Файл пустой: $f"
+              exit 1
+            fi
+          done
+          echo "✅ Все файлы найдены и не пустые."
 
-      # 4️⃣ Отладка содержимого файлов
-      - name: Debug file contents
+      # 4️⃣ Проверка наличия ключа openapi: или swagger:
+      - name: Validate OpenAPI keys
         run: |
-          echo "🧾 Base file content (first 20 lines):"
-          head -n 20 spec/base/openapi-base.yaml || echo "⚠️ Base file missing or empty"
-          echo
-          echo "🧾 Current file content (first 20 lines):"
-          head -n 20 spec/openapi.yaml || echo "⚠️ Current file missing or empty"
+          BASE_FILE="spec/base/openapi-base.yaml"
+          CURRENT_FILE="spec/openapi.yaml"
 
-      # 5️⃣ Проверяем доступность файлов внутри контейнера
+          for f in "$BASE_FILE" "$CURRENT_FILE"; do
+            if ! grep -qE "^(openapi|swagger):" "$f"; then
+              echo "❌ Файл $f не содержит ключа openapi: или swagger:"
+              exit 1
+            fi
+          done
+          echo "✅ Все файлы содержат корректный ключ openapi: или swagger:"
+
+      # 5️⃣ Проверка доступности файлов внутри контейнера
       - name: Validate OpenAPI files inside Docker
         run: |
-          echo "🐳 Проверяем, что файлы видны внутри контейнера..."
+          echo "🐳 Проверяем файлы внутри контейнера..."
           docker run --rm -v ${{ github.workspace }}:/work alpine sh -c "
-            echo 'Содержимое /work/spec:' && ls -R /work/spec || exit 1
-            if [ ! -f /work/spec/base/openapi-base.yaml ]; then
-              echo '❌ Base spec not found inside container'
-              exit 1
-            fi
-            if [ ! -f /work/spec/openapi.yaml ]; then
-              echo '❌ Current spec not found inside container'
-              exit 1
-            fi
-            echo '✅ Все файлы доступны внутри контейнера.'
+            ls -R /work/spec || exit 1
+            for f in /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml; do
+              if [ ! -f \$f ]; then
+                echo '❌ Файл не найден внутри контейнера: '\$f
+                exit 1
+              fi
+            done
+            echo '✅ Файлы доступны внутри контейнера.'
           "
 
       # 6️⃣ Генерация diff-отчётов
