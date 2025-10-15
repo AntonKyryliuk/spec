@@ -13,13 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Клонируем репозиторий
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2️⃣ Проверяем наличие Docker (он уже предустановлен в runner)
       - name: Check Docker version
-        run: docker --version  # (опционально, можно удалить)
+        run: docker --version
 
-      - name: Check OpenAPI files
+      # 3️⃣ Проверяем наличие нужных файлов OpenAPI
+      - name: Validate OpenAPI files
         run: |
           BASE_FILE="${{ github.workspace }}/spec/base/openapi-base.yaml"
           CURRENT_FILE="${{ github.workspace }}/spec/openapi.yaml"
@@ -34,26 +37,34 @@ jobs:
             exit 1
           fi
 
+      # 4️⃣ Генерируем отчёт diff (Markdown + HTML)
       - name: Generate OpenAPI Diff Reports
         run: |
           BASE_FILE="${{ github.workspace }}/spec/base/openapi-base.yaml"
           CURRENT_FILE="${{ github.workspace }}/spec/openapi.yaml"
 
-          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
-            openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown openapi-diff-report.md || true
+          echo "🚀 Generating OpenAPI diff reports..."
 
+          # Markdown отчёт
           docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
-            openapi-diff "$BASE_FILE" "$CURRENT_FILE" html openapi-diff-report.html || true
+            openapi-diff "$BASE_FILE" "$CURRENT_FILE" markdown "${{ github.workspace }}/openapi-diff-report.md" || true
 
-      - name: Show Diff Report
+          # HTML отчёт
+          docker run --rm -v ${{ github.workspace }}:/work openapitools/openapi-diff:latest \
+            openapi-diff "$BASE_FILE" "$CURRENT_FILE" html "${{ github.workspace }}/openapi-diff-report.html" || true
+
+      # 5️⃣ Показываем часть Markdown-отчёта в логах
+      - name: Show Diff Report Preview
+        if: always()
         run: |
           echo "✅ OpenAPI diff report (first 30 lines):"
-          head -n 30 "${{ github.workspace }}/openapi-diff-report.md"
+          head -n 30 "${{ github.workspace }}/openapi-diff-report.md" || echo "⚠️ No diff file generated"
 
-      - name: Upload Artifacts
+      # 6️⃣ Загружаем отчёты как артефакты
+      - name: Upload Diff Reports
         uses: actions/upload-artifact@v4
         with:
           name: openapi-diff-report
           path: |
             ${{ github.workspace }}/openapi-diff-report.md
-            ${{ github.workspace }}/openapi-diff.log
+            ${{ github.workspace }}/openapi-diff-report.html
