@@ -70,8 +70,8 @@ jobs:
           openapi-spec-validator spec/openapi.yaml
           echo "✅ OpenAPI файлы прошли валидацию."
 
-      # 8️⃣ Генерация diff-отчётов через локальный JAR
-      - name: Generate OpenAPI Diff Reports
+      # 8️⃣ Генерация diff-отчётов и вывод в консоль
+      - name: Generate OpenAPI Diff Report
         run: |
           JAR_PATH=".github/tools/openapi-diff-cli-2.1.4-all.jar"
           if [ ! -f "$JAR_PATH" ]; then
@@ -79,21 +79,5 @@ jobs:
             exit 1
           fi
 
-          java -jar "$JAR_PATH" spec/base/openapi-base.yaml spec/openapi.yaml  markdown > openapi-diff-report.md || true
-          java -jar "$JAR_PATH" spec/base/openapi-base.yaml spec/openapi.yaml  html > openapi-diff-report.html || true
-
-      # 9️⃣ Показываем первые строки Markdown отчёта
-      - name: Show Diff Report Preview
-        if: always()
-        run: |
-          echo "✅ OpenAPI diff report (first 30 lines):"
-          head -n 30 openapi-diff-report.md || echo "⚠️ No diff file generated"
-
-      # 🔟 Загружаем отчёты как артефакты
-      - name: Upload Diff Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: openapi-diff-report
-          path: |
-            openapi-diff-report.md
-            openapi-diff-report.html
+          echo "🚀 OpenAPI diff report (Markdown format):"
+          java -jar "$JAR_PATH" spec/base/openapi-base.yaml spec/openapi.yaml  markdown || true
