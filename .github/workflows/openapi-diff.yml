@@ -21,8 +21,18 @@ jobs:
       - name: Check Docker
         run: docker --version
 
-      # 3️⃣ Проверяем наличие файлов на runner-е
-      - name: Validate OpenAPI files (host)
+      # 3️⃣ Устанавливаем Node.js (для swagger2openapi)
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 4️⃣ Устанавливаем swagger2openapi
+      - name: Install swagger2openapi
+        run: npm install -g swagger2openapi
+
+      # 5️⃣ Проверяем наличие файлов на runner-е
+      - name: Validate OpenAPI/Swagger files
         run: |
           echo "📁 Проверяем наличие файлов в репозитории..."
           ls -R spec || (echo "❌ Папка spec не найдена" && exit 1)
@@ -42,7 +52,7 @@ jobs:
           done
           echo "✅ Все файлы найдены и не пустые."
 
-      # 4️⃣ Проверка ключа openapi: или swagger:
+      # 6️⃣ Проверка ключа openapi: или swagger:
       - name: Validate OpenAPI keys
         run: |
           BASE_FILE="spec/base/openapi-base.yaml"
@@ -56,26 +66,38 @@ jobs:
           done
           echo "✅ Все файлы содержат корректный ключ openapi: или swagger:"
 
-      # 5️⃣ Валидация файлов с openapi-spec-validator
-      - name: Validate OpenAPI spec syntax
+      # 7️⃣ Конвертация Swagger 2.0 → OpenAPI 3.0
+      - name: Convert Swagger 2.0 → OpenAPI 3.0
+        run: |
+          BASE_FILE="spec/base/openapi-base.yaml"
+          CURRENT_FILE="spec/openapi.yaml"
+          BASE_FILE_3="spec/base/openapi-base-3.yaml"
+          CURRENT_FILE_3="spec/openapi-3.yaml"
+
+          swagger2openapi "$BASE_FILE" -o "$BASE_FILE_3"
+          swagger2openapi "$CURRENT_FILE" -o "$CURRENT_FILE_3"
+          echo "✅ Конвертация завершена: $BASE_FILE_3, $CURRENT_FILE_3"
+
+      # 8️⃣ Валидация OpenAPI 3.0 файлов
+      - name: Validate OpenAPI 3.0 spec syntax
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
       - run: |
           pip install openapi-spec-validator
           echo "🔍 Валидируем base file..."
-          openapi-spec-validator spec/base/openapi-base.yaml
+          openapi-spec-validator spec/base/openapi-base-3.yaml
           echo "🔍 Валидируем current file..."
-          openapi-spec-validator spec/openapi.yaml
-          echo "✅ OpenAPI файлы прошли валидацию."
+          openapi-spec-validator spec/openapi-3.yaml
+          echo "✅ OpenAPI 3 файлы прошли валидацию."
 
-      # 6️⃣ Проверка доступности файлов внутри контейнера
+      # 9️⃣ Проверка доступности файлов внутри контейнера
       - name: Validate OpenAPI files inside Docker
         run: |
           echo "🐳 Проверяем файлы внутри контейнера..."
           docker run --rm -v ${{ github.workspace }}:/work alpine sh -c "
             ls -R /work/spec || exit 1
-            for f in /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml; do
+            for f in /work/spec/base/openapi-base-3.yaml /work/spec/openapi-3.yaml; do
               if [ ! -f \$f ]; then
                 echo '❌ Файл не найден внутри контейнера: '\$f
                 exit 1
@@ -84,29 +106,29 @@ jobs:
             echo '✅ Файлы доступны внутри контейнера.'
           "
 
-      # 7️⃣ Генерация diff-отчётов
+      # 🔟 Генерация diff-отчётов
       - name: Generate OpenAPI Diff Reports
         run: |
           echo "🚀 Генерируем OpenAPI diff отчёты..."
 
           docker run --rm -e JAVA_OPTS="-Dswagger.compat.converter.resolveFully=true" \
             -v ${{ github.workspace }}:/work openapitools/openapi-diff:2.1.0 \
-            openapi-diff /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml \
+            openapi-diff /work/spec/base/openapi-base-3.yaml /work/spec/openapi-3.yaml \
             markdown --fail-on-incompatible true > ${{ github.workspace }}/openapi-diff-report.md || true
 
           docker run --rm -e JAVA_OPTS="-Dswagger.compat.converter.resolveFully=true" \
             -v ${{ github.workspace }}:/work openapitools/openapi-diff:2.1.0 \
-            openapi-diff /work/spec/base/openapi-base.yaml /work/spec/openapi.yaml \
+            openapi-diff /work/spec/base/openapi-base-3.yaml /work/spec/openapi-3.yaml \
             html --fail-on-incompatible true > ${{ github.workspace }}/openapi-diff-report.html || true
 
-      # 8️⃣ Показываем первые строки Markdown отчёта
+      # 1️⃣1️⃣ Показываем первые строки Markdown отчёта
       - name: Show Diff Report Preview
         if: always()
         run: |
           echo "✅ OpenAPI diff report (first 30 lines):"
           head -n 30 "${{ github.workspace }}/openapi-diff-report.md" || echo "⚠️ No diff file generated"
 
-      # 9️⃣ Загружаем отчёты как артефакты
+      # 1️⃣2️⃣ Загружаем отчёты как артефакты
       - name: Upload Diff Reports
         uses: actions/upload-artifact@v4
         with:
