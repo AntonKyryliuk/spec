@@ -70,10 +70,10 @@ jobs:
           openapi-spec-validator spec/openapi.yaml
           echo "✅ Файлы прошли валидацию."
 
-      # 8️⃣ Скачиваем openapi-diff-cli 2.1.4
-      - name: Download openapi-diff-cli 2.1.4
+      # 8️⃣ Скачиваем openapi-diff-cli 2.1.3
+      - name: Download openapi-diff-cli 2.1.3
         run: |
-          wget -O openapi-diff-cli.jar https://repo1.maven.org/maven2/org/openapitools/openapi-diff-cli/2.1.4/openapi-diff-cli-2.1.4.jar
+          wget -O openapi-diff-cli.jar https://repo1.maven.org/maven2/org/openapitools/openapi-diff-cli/2.1.3/openapi-diff-cli-2.1.3.jar
 
       # 9️⃣ Генерация diff-отчётов
       - name: Generate OpenAPI Diff Reports

@@ -1,100 +1,1321 @@
-name: OpenAPI Diff Report
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-jobs:
-  openapi-diff:
-    runs-on: ubuntu-latest
-
-    steps:
-      # 1️⃣ Клонируем репозиторий
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # 2️⃣ Устанавливаем Java 18
-      - name: Setup Java 18
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '18'
-
-      # 3️⃣ Устанавливаем Python для валидации
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      # 4️⃣ Устанавливаем openapi-spec-validator
-      - run: pip install openapi-spec-validator
-
-      # 5️⃣ Проверяем наличие файлов
-      - name: Validate OpenAPI/Swagger files
-        run: |
-          BASE_FILE="spec/base/openapi-base.yaml"
-          CURRENT_FILE="spec/openapi.yaml"
-          for f in "$BASE_FILE" "$CURRENT_FILE"; do
-            if [ ! -f "$f" ]; then
-              echo "❌ Файл не найден: $f"
-              exit 1
-            fi
-            if [ ! -s "$f" ]; then
-              echo "❌ Файл пустой: $f"
-              exit 1
-            fi
-          done
-          echo "✅ Все файлы найдены и не пустые."
-
-      # 6️⃣ Проверяем ключ swagger/openapi
-      - name: Validate OpenAPI keys
-        run: |
-          BASE_FILE="spec/base/openapi-base.yaml"
-          CURRENT_FILE="spec/openapi.yaml"
-          for f in "$BASE_FILE" "$CURRENT_FILE"; do
-            if ! grep -qE "^(openapi|swagger):" "$f"; then
-              echo "❌ Файл $f не содержит ключа openapi: или swagger:"
-              exit 1
-            fi
-          done
-          echo "✅ Ключи openapi/swagger найдены."
-
-      # 7️⃣ Валидируем файлы через openapi-spec-validator
-      - name: Validate OpenAPI spec syntax
-        run: |
-          openapi-spec-validator spec/base/openapi-base.yaml
-          openapi-spec-validator spec/openapi.yaml
-          echo "✅ Файлы прошли валидацию."
-
-      # 8️⃣ Скачиваем openapi-diff-cli 2.1.3
-      - name: Download openapi-diff-cli 2.1.3
-        run: |
-          wget -O openapi-diff-cli.jar https://repo1.maven.org/maven2/org/openapitools/openapi-diff-cli/2.1.3/openapi-diff-cli-2.1.3.jar
-
-      # 9️⃣ Генерация diff-отчётов
-      - name: Generate OpenAPI Diff Reports
-        run: |
-          java -jar openapi-diff-cli.jar spec/base/openapi-base.yaml spec/openapi.yaml \
-             markdown > openapi-diff-report.md || true
-          java -jar openapi-diff-cli.jar spec/base/openapi-base.yaml spec/openapi.yaml \
-             html > openapi-diff-report.html || true
-
-      # 🔟 Показываем первые строки Markdown отчёта
-      - name: Show Diff Report Preview
-        if: always()
-        run: |
-          echo "✅ OpenAPI diff report (first 30 lines):"
-          head -n 30 openapi-diff-report.md || echo "⚠️ No diff file generated"
-
-      # 1️⃣1️⃣ Загружаем отчёты как артефакты
-      - name: Upload Diff Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: openapi-diff-report
-          path: |
-            openapi-diff-report.md
-            openapi-diff-report.html
+swagger: "2.0"
+info:
+  version: "2.4"
+  title: Magento Community
+host: localhost
+basePath: /all
+schemes:
+  - https
+tags:
+  -
+    name: storeStoreRepositoryV1
+    description: Store repository interface
+  -
+    name: storeGroupRepositoryV1
+    description: Group repository interface
+  -
+    name: storeWebsiteRepositoryV1
+    description: Website repository interface
+  -
+    name: storeStoreConfigManagerV1
+    description: Store config manager interface
+  -
+    name: directoryCurrencyInformationAcquirerV1
+    description: Currency information acquirer interface
+  -
+    name: directoryCountryInformationAcquirerV1
+    description: Country information acquirer interface
+  -
+    name: cmsPageRepositoryV1
+    description: CMS page CRUD interface.
+  -
+    name: cmsBlockRepositoryV1
+    description: CMS block CRUD interface.
+  -
+    name: backendModuleServiceV1
+    description: Interface for module service.
+  -
+    name: eavAttributeSetRepositoryV1
+    description: >
+      Interface
+      AttributeSetRepositoryInterface
+  -
+    name: eavAttributeSetManagementV1
+    description: >
+      Interface
+      AttributeSetManagementInterface
+  -
+    name: customerGroupRepositoryV1
+    description: Customer group CRUD interface
+  -
+    name: customerGroupManagementV1
+    description: Interface for managing customer groups.
+  -
+    name: customerCustomerGroupConfigV1
+    description: >
+      Interface for system configuration
+      operations for customer groups.
+  -
+    name: customerCustomerMetadataV1
+    description: >
+      Interface for retrieval information
+      about customer attributes metadata.
+  -
+    name: customerAddressMetadataV1
+    description: >
+      Interface for retrieval information
+      about customer address attributes
+      metadata.
+  -
+    name: customerCustomerRepositoryV1
+    description: Customer CRUD interface.
+  -
+    name: customerAccountManagementV1
+    description: >
+      Interface for managing customers
+      accounts.
+  -
+    name: customerAddressRepositoryV1
+    description: Customer address CRUD interface.
+  -
+    name: catalogProductRepositoryV1
+    description: ""
+  -
+    name: catalogProductAttributeTypesListV1
+    description: ""
+  -
+    name: catalogProductAttributeRepositoryV1
+    description: >
+      Interface RepositoryInterface must be
+      implemented in new model
+  -
+    name: >
+      catalogProductAttributeIsFilterableManagementV1
+    description: "Intended to allow setting 'is_filterable' property for specific attribute as integer value via REST/SOAP API"
+  -
+    name: catalogCategoryAttributeRepositoryV1
+    description: >
+      Interface RepositoryInterface must be
+      implemented in new model
+  -
+    name: >
+      catalogCategoryAttributeOptionManagementV1
+    description: >
+      Interface RepositoryInterface must be
+      implemented in new model
+  -
+    name: catalogProductTypeListV1
+    description: ""
+  -
+    name: catalogAttributeSetRepositoryV1
+    description: ""
+  -
+    name: catalogAttributeSetManagementV1
+    description: ""
+  -
+    name: catalogProductAttributeManagementV1
+    description: ""
+  -
+    name: catalogProductAttributeGroupRepositoryV1
+    description: ""
+  -
+    name: >
+      catalogProductAttributeOptionManagementV1
+    description: ""
+  -
+    name: catalogProductAttributeOptionUpdateV1
+    description: >
+      Interface to update product attribute
+      option
+  -
+    name: catalogProductMediaAttributeManagementV1
+    description: ""
+  -
+    name: >
+      catalogProductAttributeMediaGalleryManagementV1
+    description: ""
+  -
+    name: catalogProductTierPriceManagementV1
+    description: ""
+  -
+    name: catalogTierPriceStorageV1
+    description: Tier prices storage.
+  -
+    name: catalogBasePriceStorageV1
+    description: Base prices storage.
+  -
+    name: catalogCostStorageV1
+    description: Product cost storage.
+  -
+    name: catalogSpecialPriceStorageV1
+    description: >
+      Special price storage presents efficient
+      price API and is used to retrieve,
+      update or delete special prices.
+  -
+    name: catalogCategoryRepositoryV1
+    description: ""
+  -
+    name: catalogCategoryManagementV1
+    description: ""
+  -
+    name: catalogCategoryListV1
+    description: ""
+  -
+    name: catalogProductCustomOptionTypeListV1
+    description: ""
+  -
+    name: catalogProductCustomOptionRepositoryV1
+    description: ""
+  -
+    name: catalogProductLinkTypeListV1
+    description: ""
+  -
+    name: catalogProductLinkManagementV1
+    description: ""
+  -
+    name: catalogProductLinkRepositoryV1
+    description: >
+      Interface Product links handling
+      interface
+  -
+    name: catalogCategoryLinkManagementV1
+    description: ""
+  -
+    name: catalogCategoryLinkRepositoryV1
+    description: ""
+  -
+    name: catalogProductWebsiteLinkRepositoryV1
+    description: >
+      Interface
+      ProductWebsiteLinkRepositoryInterface
+  -
+    name: catalogProductRenderListV1
+    description: >
+      Interface which provides product renders
+      information for products.
+  -
+    name: twoFactorAuthAdminTokenServiceV1
+    description: >
+      Obtain basic information about the user
+      required to setup or use 2fa
+  -
+    name: integrationCustomerTokenServiceV1
+    description: >
+      Interface providing token generation for
+      Customers
+  -
+    name: catalogInventoryStockRegistryV1
+    description: Interface StockRegistryInterface
+  -
+    name: searchV1
+    description: Search API for all requests
+  -
+    name: quoteCartRepositoryV1
+    description: Interface CartRepositoryInterface
+  -
+    name: quoteCartManagementV1
+    description: Interface CartManagementInterface
+  -
+    name: quoteGuestCartRepositoryV1
+    description: >
+      Cart Repository interface for guest
+      carts.
+  -
+    name: quoteGuestCartManagementV1
+    description: >
+      Cart Management interface for guest
+      carts.
+  -
+    name: quoteShippingMethodManagementV1
+    description: >
+      Interface
+      ShippingMethodManagementInterface
+  -
+    name: quoteShipmentEstimationV1
+    description: Interface ShipmentManagementInterface
+  -
+    name: quoteGuestShippingMethodManagementV1
+    description: >
+      Shipping method management interface for
+      guest carts.
+  -
+    name: quoteGuestShipmentEstimationV1
+    description: >
+      Interface
+      GuestShipmentEstimationInterface
+  -
+    name: quoteCartItemRepositoryV1
+    description: Interface CartItemRepositoryInterface
+  -
+    name: quoteGuestCartItemRepositoryV1
+    description: >
+      Cart Item repository interface for guest
+      carts.
+  -
+    name: quotePaymentMethodManagementV1
+    description: >
+      Interface
+      PaymentMethodManagementInterface
+  -
+    name: quoteGuestPaymentMethodManagementV1
+    description: >
+      Payment method management interface for
+      guest carts.
+  -
+    name: quoteBillingAddressManagementV1
+    description: >
+      Interface
+      BillingAddressManagementInterface
+  -
+    name: quoteGuestBillingAddressManagementV1
+    description: >
+      Billing address management interface for
+      guest carts.
+  -
+    name: quoteCouponManagementV1
+    description: Coupon management service interface.
+  -
+    name: quoteGuestCouponManagementV1
+    description: >
+      Coupon management interface for guest
+      carts.
+  -
+    name: quoteCartTotalRepositoryV1
+    description: Interface CartTotalRepositoryInterface
+  -
+    name: quoteGuestCartTotalManagementV1
+    description: >
+      Bundled API to collect totals for cart
+      based on shipping/payment methods and
+      additional data.
+  -
+    name: quoteGuestCartTotalRepositoryV1
+    description: >
+      Cart totals repository interface for
+      guest carts.
+  -
+    name: quoteCartTotalManagementV1
+    description: >
+      Bundled API to collect totals for cart
+      based on shipping/payment methods and
+      additional data.
+  -
+    name: twoFactorAuthTfaV1
+    description: 2FA configuration manager.
+  -
+    name: twoFactorAuthUserConfigManagerV1
+    description: User configuration manager
+  -
+    name: twoFactorAuthTfatActionsV1
+    description: >
+      Actions the user can perform using the
+      pre-2fa token (tfat)
+  -
+    name: twoFactorAuthGoogleConfigureV1
+    description: Represents the google provider
+  -
+    name: twoFactorAuthGoogleAuthenticateV1
+    description: Represents google authentication
+  -
+    name: twoFactorAuthAuthyConfigureV1
+    description: Represents the authy provider
+  -
+    name: twoFactorAuthAuthyAuthenticateV1
+    description: >
+      Represents the authy provider
+      authentication
+  -
+    name: twoFactorAuthU2fKeyConfigureV1
+    description: >
+      Represent configuration for u2f key
+      provider
+  -
+    name: twoFactorAuthU2fKeyAuthenticateV1
+    description: >
+      Represent Authentication for u2f key
+      provider
+  -
+    name: twoFactorAuthDuoConfigureV1
+    description: >
+      Represents configuration for the duo
+      security provider
+  -
+    name: twoFactorAuthDuoAuthenticateV1
+    description: >
+      Represents authentication for the duo
+      security provider
+  -
+    name: salesOrderRepositoryV1
+    description: >
+      Order repository interface. An order is
+      a document that a web store issues to a
+      customer. Magento generates a sales
+      order that lists the product items,
+      billing and shipping addresses, and
+      shipping and payment methods. A
+      corresponding external document, known
+      as a purchase order, is emailed to the
+      customer.
+  -
+    name: salesOrderManagementV1
+    description: >
+      Order management interface. An order is
+      a document that a web store issues to a
+      customer. Magento generates a sales
+      order that lists the product items,
+      billing and shipping addresses, and
+      shipping and payment methods. A
+      corresponding external document, known
+      as a purchase order, is emailed to the
+      customer.
+  -
+    name: salesOrderAddressRepositoryV1
+    description: >
+      Order address repository interface. An
+      order is a document that a web store
+      issues to a customer. Magento generates
+      a sales order that lists the product
+      items, billing and shipping addresses,
+      and shipping and payment methods. A
+      corresponding external document, known
+      as a purchase order, is emailed to the
+      customer.
+  -
+    name: salesOrderItemRepositoryV1
+    description: >
+      Order item repository interface. An
+      order is a document that a web store
+      issues to a customer. Magento generates
+      a sales order that lists the product
+      items, billing and shipping addresses,
+      and shipping and payment methods. A
+      corresponding external document, known
+      as a purchase order, is emailed to the
+      customer.
+  -
+    name: salesInvoiceRepositoryV1
+    description: >
+      Invoice repository interface. An invoice
+      is a record of the receipt of payment
+      for an order.
+  -
+    name: salesInvoiceManagementV1
+    description: >
+      Invoice management interface. An invoice
+      is a record of the receipt of payment
+      for an order.
+  -
+    name: salesInvoiceCommentRepositoryV1
+    description: >
+      Invoice comment repository interface. An
+      invoice is a record of the receipt of
+      payment for an order. An invoice can
+      include comments that detail the invoice
+      history.
+  -
+    name: salesRefundInvoiceV1
+    description: Interface RefundInvoiceInterface
+  -
+    name: salesCreditmemoManagementV1
+    description: >
+      Credit memo add comment interface. After
+      a customer places and pays for an order
+      and an invoice has been issued, the
+      merchant can create a credit memo to
+      refund all or part of the amount paid
+      for any returned or undelivered items.
+      The memo restores funds to the customer
+      account so that the customer can make
+      future purchases.
+  -
+    name: salesCreditmemoRepositoryV1
+    description: >
+      Credit memo repository interface. After
+      a customer places and pays for an order
+      and an invoice has been issued, the
+      merchant can create a credit memo to
+      refund all or part of the amount paid
+      for any returned or undelivered items.
+      The memo restores funds to the customer
+      account so that the customer can make
+      future purchases.
+  -
+    name: salesCreditmemoCommentRepositoryV1
+    description: >
+      Credit memo comment repository
+      interface. After a customer places and
+      pays for an order and an invoice has
+      been issued, the merchant can create a
+      credit memo to refund all or part of the
+      amount paid for any returned or
+      undelivered items. The memo restores
+      funds to the customer account so that
+      the customer can make future purchases.
+      A credit memo usually includes comments
+      that detail why the credit memo amount
+      was credited to the customer.
+  -
+    name: salesRefundOrderV1
+    description: Interface RefundOrderInterface
+  -
+    name: salesShipmentRepositoryV1
+    description: >
+      Shipment repository interface. A
+      shipment is a delivery package that
+      contains products. A shipment document
+      accompanies the shipment. This document
+      lists the products and their quantities
+      in the delivery package.
+  -
+    name: salesShipmentManagementV1
+    description: >
+      Shipment management interface. A
+      shipment is a delivery package that
+      contains products. A shipment document
+      accompanies the shipment. This document
+      lists the products and their quantities
+      in the delivery package.
+  -
+    name: salesShipmentCommentRepositoryV1
+    description: >
+      Shipment comment repository interface. A
+      shipment is a delivery package that
+      contains products. A shipment document
+      accompanies the shipment. This document
+      lists the products and their quantities
+      in the delivery package. A shipment
+      document can contain comments.
+  -
+    name: salesShipmentTrackRepositoryV1
+    description: >
+      Shipment track repository interface. A
+      shipment is a delivery package that
+      contains products. A shipment document
+      accompanies the shipment. This document
+      lists the products and their quantities
+      in the delivery package.
+  -
+    name: salesShipOrderV1
+    description: Class ShipOrderInterface
+  -
+    name: salesTransactionRepositoryV1
+    description: >
+      Transaction repository interface. A
+      transaction is an interaction between a
+      merchant and a customer such as a
+      purchase, a credit, a refund, and so on.
+  -
+    name: salesInvoiceOrderV1
+    description: Class InvoiceOrderInterface
+  -
+    name: >
+      checkoutGuestShippingInformationManagementV1
+    description: >
+      Interface for managing guest shipping
+      address information
+  -
+    name: checkoutShippingInformationManagementV1
+    description: >
+      Interface for managing customer shipping
+      address information
+  -
+    name: checkoutTotalsInformationManagementV1
+    description: Interface for quote totals calculation
+  -
+    name: >
+      checkoutGuestTotalsInformationManagementV1
+    description: >
+      Interface for guest quote totals
+      calculation
+  -
+    name: >
+      checkoutGuestPaymentInformationManagementV1
+    description: >
+      Interface for managing guest payment
+      information
+  -
+    name: checkoutPaymentInformationManagementV1
+    description: >
+      Interface for managing quote payment
+      information
+  -
+    name: configurableProductLinkManagementV1
+    description: >
+      Manage children products of configurable
+      product
+  -
+    name: >
+      configurableProductConfigurableProductManagementV1
+    description: >
+      Interface
+      ConfigurableProductManagementInterface
+  -
+    name: configurableProductOptionRepositoryV1
+    description: Manage options of configurable product
+  -
+    name: analyticsLinkProviderV1
+    description: >
+      Provides link to file with collected
+      report data.
+  -
+    name: downloadableLinkRepositoryV1
+    description: Interface LinkRepositoryInterface
+  -
+    name: downloadableSampleRepositoryV1
+    description: Interface SampleRepositoryInterface
+  -
+    name: bundleProductLinkManagementV1
+    description: Interface for Management of ProductLink
+  -
+    name: bundleProductOptionRepositoryV1
+    description: >
+      Interface
+      ProductOptionRepositoryInterface
+  -
+    name: bundleProductOptionTypeListV1
+    description: Interface ProductOptionTypeListInterface
+  -
+    name: bundleProductOptionManagementV1
+    description: Option manager for bundle products
+  -
+    name: giftMessageCartRepositoryV1
+    description: Interface CartRepositoryInterface
+  -
+    name: giftMessageItemRepositoryV1
+    description: Interface ItemRepositoryInterface
+  -
+    name: giftMessageGuestCartRepositoryV1
+    description: Interface GuestCartRepositoryInterface
+  -
+    name: giftMessageGuestItemRepositoryV1
+    description: Interface GuestItemRepositoryInterface
+  -
+    name: liqpayMagentoLiqPayLiqPayCallbackV1
+    description: ""
+  -
+    name: inventoryApiSourceRepositoryV1
+    description: "In Magento 2 Repository considered as an implementation of Facade pattern which provides a simplified interface to a larger body of code responsible for Domain Entity management The main intention is to make API more readable and reduce dependencies of business logic code on the inner workings of a module, since most code uses the facade, thus allowing more flexibility in developing the system Along with this such approach helps to segregate two responsibilities: 1. Repository now could be considered as an API - Interface for usage (calling) in the business logic 2. Separate class-commands to which Repository proxies initial call (like, Get Save GetList Delete) could be    considered as SPI - Interfaces that you should extend and implement to customize current behaviour There is no delete method. It is related to that Source can't be deleted due to we don't want miss data related to Sources (like as order information). But Source can be disabled Used fully qualified namespaces in annotations for proper work of WebApi request parser"
+  -
+    name: >
+      inventoryApiGetSourcesAssignedToStockOrderedByPriorityV1
+    description: >
+      Retrieve sources related to current
+      stock ordered by priority Used fully
+      qualified namespaces in annotations for
+      proper work of WebApi request parser
+  -
+    name: inventoryApiStockRepositoryV1
+    description: 'In Magento 2 Repository considered as an implementation of Facade pattern which provides a simplified interface to a larger body of code responsible for Domain Entity management The main intention is to make API more readable and reduce dependencies of business logic code on the inner workings of a module, since most code uses the facade, thus allowing more flexibility in developing the system Along with this such approach helps to segregate two responsibilities: 1. Repository now could be considered as an API - Interface for usage (calling) in the business logic 2. Separate class-commands to which Repository proxies initial call (like, Get Save GetList Delete) could be    considered as SPI - Interfaces that you should extend and implement to customize current behaviour Used fully qualified namespaces in annotations for proper work of WebApi request parser'
+  -
+    name: inventoryApiGetStockSourceLinksV1
+    description: >
+      Find StockSourceLink list by
+      SearchCriteria API Used fully qualified
+      namespaces in annotations for proper
+      work of WebApi request parser
+  -
+    name: inventoryApiStockSourceLinksSaveV1
+    description: >
+      Service method for stock source links
+      save multiple Performance efficient API
+      Used fully qualified namespaces in
+      annotations for proper work of WebApi
+      request parser
+  -
+    name: inventoryApiStockSourceLinksDeleteV1
+    description: >
+      Service method for stock source links
+      delete multiple Performance efficient
+      API Used fully qualified namespaces in
+      annotations for proper work of WebApi
+      request parser
+  -
+    name: inventoryApiSourceItemRepositoryV1
+    description: 'In Magento 2 Repository considered as an implementation of Facade pattern which provides a simplified interface to a larger body of code responsible for Domain Entity management The main intention is to make API more readable and reduce dependencies of business logic code on the inner workings of a module, since most code uses the facade, thus allowing more flexibility in developing the system Along with this such approach helps to segregate two responsibilities: 1. Repository now could be considered as an API - Interface for usage (calling) in the business logic 2. Separate class-commands to which Repository proxies initial call (like, Get Save GetList Delete) could be    considered as SPI - Interfaces that you should extend and implement to customize current behaviour The method save is absent, due to different semantic (save multiple)'
+  -
+    name: inventoryApiSourceItemsSaveV1
+    description: >
+      Service method for source items save
+      multiple Performance efficient API Used
+      fully qualified namespaces in
+      annotations for proper work of WebApi
+      request parser
+  -
+    name: inventoryApiSourceItemsDeleteV1
+    description: >
+      Service method for source items delete
+      multiple Performance efficient API Used
+      fully qualified namespaces in
+      annotations for proper work of WebApi
+      request parser
+  -
+    name: inventoryCatalogApiBulkSourceAssignV1
+    description: Perform bulk product source assignment
+  -
+    name: inventoryCatalogApiBulkSourceUnassignV1
+    description: >
+      Perform bulk product source
+      un-assignment
+  -
+    name: >
+      inventoryCatalogApiBulkInventoryTransferV1
+    description: Perform bulk product inventory transfer
+  -
+    name: >
+      inventoryCatalogApiBulkPartialInventoryTransferV1
+    description: >
+      Transfer Inventory between sources.
+      Moves specified items from origin source
+      to destination source.
+  -
+    name: >
+      inventoryDistanceBasedSourceSelectionApiGetDistanceProviderCodeV1
+    description: Get selected distance provider code
+  -
+    name: >
+      inventoryDistanceBasedSourceSelectionApiGetDistanceV1
+    description: >
+      Get distance between two LatLngRequest
+      points
+  -
+    name: >
+      inventoryDistanceBasedSourceSelectionApiGetLatLngFromAddressV1
+    description: >
+      Get latitude and longitude object from
+      address
+  -
+    name: >
+      inventoryDistanceBasedSourceSelectionApiGetLatsLngsFromAddressV1
+    description: >
+      Get all available latitude and longitude
+      objects from address interface.
+  -
+    name: >
+      inventoryExportStockApiExportStockSalableQtyV1
+    description: "Interface for ExportStockSalableQty provides product's salable qty information by search criteria"
+  -
+    name: >
+      inventoryExportStockApiExportStockIndexDataV1
+    description: >
+      Class ExportStockIndexData provides
+      stock index export based on raw data
+      contained in the stock index.
+  -
+    name: inventorySalesApiGetProductSalableQtyV1
+    description: >
+      Service which returns Quantity of
+      products available to be sold by Product
+      SKU and Stock Id. This service
+      calculates the salable qty taking into
+      account existing reservations for given
+      sku and stock id and subtracting min qty
+      (a.k.a. "Out-of-Stock Threshold")
+  -
+    name: inventorySalesApiIsProductSalableV1
+    description: >
+      Service which detects whether Product is
+      salable for a given Stock (stock data +
+      reservations)
+  -
+    name: inventorySalesApiAreProductsSalableV1
+    description: >
+      Service which detects whether products
+      are salable for given stock (stock data
+      + reservations).
+  -
+    name: >
+      inventorySalesApiIsProductSalableForRequestedQtyV1
+    description: >
+      Service which detects whether a certain
+      Qty of Product is salable for a given
+      Stock (stock data + reservations)
+  -
+    name: >
+      inventorySalesApiAreProductsSalableForRequestedQtyV1
+    description: >
+      Service which detects whether a given
+      products quantities are salable for a
+      given stock (stock data + reservations).
+  -
+    name: inventorySalesApiStockResolverV1
+    description: >
+      The stock resolver is responsible for
+      getting the linked stock for a certain
+      sales channel
+  -
+    name: >
+      inventoryInStorePickupApiGetPickupLocationsV1
+    description: >
+      Get Pickup Locations filtered by
+      provided Search Request. Pickup Location
+      entities are Immutable object and can
+      not be changed after creation. All
+      modification of Pickup Location must be
+      done through @see
+      \Magento\InventoryApi\Api\SourceRepositoryInterface
+  -
+    name: >
+      inventorySourceSelectionApiGetSourceSelectionAlgorithmListV1
+    description: >
+      Returns the list of Data Interfaces
+      which represent registered SSA in the
+      system
+  -
+    name: >
+      inventorySourceSelectionApiSourceSelectionServiceV1
+    description: >
+      Returns source selection algorithm
+      result for given Inventory Request
+  -
+    name: >
+      inventoryInStorePickupSalesApiNotifyOrdersAreReadyForPickupV1
+    description: >
+      Send an email to the customer that order
+      is ready to be picked up.
+  -
+    name: >
+      inventoryLowQuantityNotificationApiGetSourceItemConfigurationV1
+    description: "Get the source item configuration Firstly try to load Source Item configuration if configuration isn't exist then load global configuration value Used fully qualified namespaces in annotations for proper work of WebApi request parser"
+  -
+    name: >
+      inventoryLowQuantityNotificationApiSourceItemConfigurationsSaveV1
+    description: >
+      Save the source item configuration Used
+      fully qualified namespaces in
+      annotations for proper work of WebApi
+      request parser
+  -
+    name: >
+      inventoryLowQuantityNotificationApiDeleteSourceItemsConfigurationV1
+    description: Delete the source item configuration
+  -
+    name: salesRuleRuleRepositoryV1
+    description: Sales rule CRUD interface
+  -
+    name: salesRuleCouponRepositoryV1
+    description: Coupon CRUD interface
+  -
+    name: salesRuleCouponManagementV1
+    description: Coupon management interface
+  -
+    name: >
+      checkoutAgreementsCheckoutAgreementsRepositoryV1
+    description: >
+      Interface
+      CheckoutAgreementsRepositoryInterface
+  -
+    name: >
+      checkoutAgreementsCheckoutAgreementsListV1
+    description: >
+      Interface for retrieving list of
+      checkout agreements. Extended variation
+      of
+      CheckoutAgreementsRepositoryInterface::getList
+      with possibility to get results
+      according search filters without
+      predefined limitations.
+  -
+    name: taxTaxRateRepositoryV1
+    description: Tax rate CRUD interface.
+  -
+    name: taxTaxRuleRepositoryV1
+    description: Tax rule CRUD interface.
+  -
+    name: taxTaxClassRepositoryV1
+    description: Tax class CRUD interface.
+  -
+    name: asynchronousOperationsBulkStatusV1
+    description: >
+      Interface BulkStatusInterface. Bulk
+      summary data with list of operations
+      items short data.
+  -
+    name: >
+      asynchronousOperationsOperationRepositoryV1
+    description: >
+      Bulk operation item repository
+      interface. An bulk is a group of queue
+      messages. An bulk operation item is a
+      queue message.
+  -
+    name: amastyAcartBlacklistRepositoryV1
+    description: Email blacklist CRUD interface
+  -
+    name: >
+      amastyAiContentGeneratorEntityContentResolverV1
+    description: ""
+  -
+    name: amastyBannersLiteUploadFileV1
+    description: ""
+  -
+    name: amastyGdprRequestV1
+    description: ""
+  -
+    name: >
+      amastyConditionsNegotiableTotalsInformationManagementV1
+    description: >
+      Interface for quote totals calculation
+      from negotiable checkout
+  -
+    name: amastyCouponsGetCouponsByCartIdV1
+    description: Get Coupons List by cartId/quoteId.
+  -
+    name: amastyCouponsApplyCouponsToCartV1
+    description: >
+      Apply Coupons List to cart by
+      cartId/quoteId.
+  -
+    name: amastyCouponsGuestGetCouponsByCartIdV1
+    description: Get Coupons List by cartId.
+  -
+    name: amastyCouponsApplyCouponsToGuestCartV1
+    description: Apply Coupons List to cart by cartId.
+  -
+    name: amastyXsearchSearchV1
+    description: ""
+  -
+    name: >
+      amastyImportExportCoreProfileProfileManagerV1
+    description: ""
+  -
+    name: amastyFaqQuestionRepositoryV1
+    description: ""
+  -
+    name: amastyFaqCategoryRepositoryV1
+    description: ""
+  -
+    name: amastyFaqTagRepositoryV1
+    description: ""
+  -
+    name: >
+      amastyShopbyBaseDataFilterSettingRepositoryV1
+    description: ""
+  -
+    name: amastyMWishlistWishlistRepositoryV1
+    description: ""
+  -
+    name: amastyMWishlistWishlistItemRepositoryV1
+    description: ""
+  -
+    name: amastyOrderarchiveArchiveProcessorV1
+    description: Interface for Order Archive Management
+  -
+    name: amastyReportsRuleRepositoryV1
+    description: ""
+  -
+    name: amastyRewardsCheckoutRewardsManagementV1
+    description: ""
+  -
+    name: >
+      amastyRewardsCatalogHighlightManagementV1
+    description: ""
+  -
+    name: amastyRewardsGuestHighlightManagementV1
+    description: ""
+  -
+    name: >
+      amastyRewardsCheckoutHighlightManagementV1
+    description: ""
+  -
+    name: amastyRewardsCustomerBalanceRepositoryV1
+    description: ""
+  -
+    name: amastyRewardsRewardsRepositoryV1
+    description: ""
+  -
+    name: amastyRewardsRewardsProviderV1
+    description: Interface RewardsProviderInterface
+  -
+    name: amastyRewardsRuleRepositoryV1
+    description: Interface RuleRepositoryInterface
+  -
+    name: amastyShopbyPagePageRepositoryV1
+    description: ""
+  -
+    name: >
+      biotusAPIWebsiteDataSyncProductDataManagementV1
+    description: Interface ProductDataManagementInterface
+  -
+    name: >
+      biotusAPIWebsiteDataSyncGetInfoAttributesManagementV1
+    description: >
+      Interface
+      GetInfoAttributesManagementInterface
+  -
+    name: biotusAmastyFaqAnswerV1
+    description: ""
+  -
+    name: biotusAmastyFaqQuestionV1
+    description: ""
+  -
+    name: biotusAmastyFaqCustomerQuestionsV1
+    description: ""
+  -
+    name: biotusAmastyFaqSupportV1
+    description: ""
+  -
+    name: biotusAmastyGdprAccountV1
+    description: ""
+  -
+    name: >
+      biotusAmastyGroupAssignCustomerProgramsV1
+    description: ""
+  -
+    name: >
+      biotusCatalogUpdateManagerBonusesManagementV1
+    description: >
+      Interface
+      UpdateManagerBonusesManagementInterface
+  -
+    name: >
+      biotusCatalogUpdateWarehousesManagementV1
+    description: >
+      Interface
+      UpdateWarehousesManagementInterface
+  -
+    name: biotusCatalogCategoryFiltersV1
+    description: ""
+  -
+    name: biotusCatalogCategorySortByV1
+    description: ""
+  -
+    name: biotusCatalogPromotionV1
+    description: ""
+  -
+    name: biotusCatalogLoadPricesManagementV1
+    description: ""
+  -
+    name: biotusCatalogProductPriceV1
+    description: ""
+  -
+    name: biotusCatalogCategoryV1
+    description: ""
+  -
+    name: biotusAmastyShopbyBrandBrandsV1
+    description: ""
+  -
+    name: >
+      biotusAmastySocialLoginCreateSocialLoginAccessTokenManagementV1
+    description: ""
+  -
+    name: biotusAmastySocialLoginAccountV1
+    description: ""
+  -
+    name: biotusAmastySocialLoginLoginV1
+    description: ""
+  -
+    name: biotusAmastyXsearchPopularV1
+    description: ""
+  -
+    name: biotusAmastyXsearchSearchV1
+    description: ""
+  -
+    name: biotusAnalyticsPaymentOrderV1
+    description: ""
+  -
+    name: biotusBestsellerBestsellersV1
+    description: ""
+  -
+    name: biotusBlogPostsManagementV1
+    description: ""
+  -
+    name: biotusBrandsPopularV1
+    description: ""
+  -
+    name: biotusAmastyMostviewedProductBundleV1
+    description: ""
+  -
+    name: biotusCheckoutIsAccountManagementV1
+    description: Interface IsAccountManagementInterface
+  -
+    name: biotusCheckoutCheckoutConfigManagementV1
+    description: ""
+  -
+    name: biotusCmsDeliveryV1
+    description: ""
+  -
+    name: >
+      biotusCommentsFlushReviewsOrderManagementV1
+    description: ""
+  -
+    name: >
+      biotusConsultationConsultationManagementV1
+    description: ""
+  -
+    name: biotusEsputnikContactsV1
+    description: ""
+  -
+    name: biotusEsputnikMessagesV1
+    description: ""
+  -
+    name: biotusDiseaseDiseaseManagementV1
+    description: ""
+  -
+    name: biotusGenderGenderChangeManagementV1
+    description: ""
+  -
+    name: biotusShippingLoadPriceManagementV1
+    description: Interface LoadPriceManagementInterface
+  -
+    name: biotusShippingAddressesV1
+    description: ""
+  -
+    name: lofMarketPlaceSellersRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSalesRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSalesInvoicesRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerRatingsRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerMessageRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceMessageRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceAdminMessageRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceUpdateStockRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSettingRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerProductV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerProductManagementV1
+    description: ""
+  -
+    name: >
+      lofMarketPlaceAmountTransactionRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerVacationRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerGroupRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellersManagementV1
+    description: ""
+  -
+    name: lofMarketPlaceWithdrawalRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlacePaymentRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerProductsRepositoryV1
+    description: ""
+  -
+    name: >
+      lofMarketPlaceSellersFrontendRepositoryV1
+    description: ""
+  -
+    name: lofMarketPlaceSellerReviewRepositoryV1
+    description: ""
+  -
+    name: >
+      lofMarketPlaceSubmitSellerReviewRepositoryV1
+    description: ""
+  -
+    name: >
+      lofMarketPlaceCustomerMessageRepositoryV1
+    description: ""
+  -
+    name: biotusSmsSmsManagementV1
+    description: Interface SmsManagementInterface
+  -
+    name: biotusSalesPaymentOrderManagementV1
+    description: ""
+  -
+    name: biotusSalesCustomerOrdersV1
+    description: ""
+  -
+    name: biotusSalesManagement1cV1
+    description: ""
+  -
+    name: biotusSalesWayForPayV1
+    description: ""
+  -
+    name: biotusSalesOrderV1
+    description: ""
+  -
+    name: biotusSalesRequisiteV1
+    description: ""
+  -
+    name: >
+      biotusMarketplaceSplitOrderShippingEstimateManagementV1
+    description: >
+      Interface
+      ShippingEstimateManagementInterface
+  -
+    name: >
+      biotusMarketplaceSplitOrderGetItemsManagementV1
+    description: ""
+  -
+    name: biotusMultiflatratesStoreV1
+    description: ""
+  -
+    name: biotusNotificationFlushManagementV1
+    description: Interface FlushManagementInterface
+  -
+    name: biotusOrderSyncOrderImportServiceV1
+    description: Interface OrderImportServiceInterface
+  -
+    name: biotusOrderSyncOrderUpdateServiceV1
+    description: Interface OrderUpdateServiceInterface
+  -
+    name: biotusParserGetDataParserManagementV1
+    description: ""
+  -
+    name: >
+      biotusPromoRuleApplyProductsRuleManagementV1
+    description: ""
+  -
+    name: >
+      biotusPuritanApiGetInfoProductsManagementV1
+    description: >
+      Interface
+      GetInfoProductsManagementInterface
+  -
+    name: biotusCustomerConfirmPhoneManagementV1
+    description: >
+      Interface
+      ConfirmPhoneManagementInterface
+  -
+    name: biotusCustomerAuthenticationManagementV1
+    description: ""
+  -
+    name: biotusCustomerNewsletterV1
+    description: ""
+  -
+    name: biotusCustomerPasswordManagementV1
+    description: ""
+  -
+    name: biotusRewardsCustomerProgramsV1
+    description: ""
+  -
+    name: biotusReviewsVideoManagementV1
+    description: Interface VideoManagementInterface
+  -
+    name: biotusReviewsReviewImagesManagementV1
+    description: >
+      Interface
+      ReviewImagesManagementInterface
+  -
+    name: biotusReviewsReviewV1
+    description: ""
+  -
+    name: biotusReviewsCustomerReviewsV1
+    description: ""
+  -
+    name: biotusRefProgramV1
+    description: ""
+  -
+    name: biotusRefProgramOfflineStoresV1
+    description: ""
+  -
+    name: biotusSliderV1
+    description: ""
+  -
+    name: >
+      biotusQuickOfflineOrderSearchCustomerManagementV1
+    description: >
+      Interface
+      SearchCustomerManagementInterface
+  -
+    name: >
+      biotusQuickOfflineOrderSearchProductsManagementV1
+    description: >
+      Interface
+      SearchProductsManagementInterface
+  -
+    name: >
+      biotusQuickOfflineOrderProcessOrderManagementV1
+    description: >
+      Interface
+      ProcessOrderManagementInterface
+  -
+    name: biotusTelegramTelegramPromoRepositoryV1
+    description: ""
+  -
+    name: >
+      biotusTelegramTelegramProductsRepositoryV1
+    description: ""
+  -
+    name: >
+      biotusTelegramTelegramCustomerRepositoryV1
+    description: ""
+  -
+    name: >
+      biotusTelegramTelegramCustomerAddressRepositoryV1
+    description: ""
+  -
+    name: >
+      biotusTelegramTelegramRewardsRepositoryV1
+    description: ""
+  -
+    name: biotusTelegramTelegramOrderRepositoryV1
+    description: ""
+  -
+    name: biotusStockBiotusStockManagementV1
+    description: Interface BiotusStockManagementInterface
+  -
+    name: biotusStockUpcUpdateManagementV1
+    description: Interface UpcUpdateManagementInterface
+  -
+    name: biotusStockMassStockUpdateManagementV1
+    description: >
+      Interface
+      MassStockUpdateManagementInterface
+  -
+    name: biotusStockMultiStockManagementV1
+    description: Interface MultiStockManagementInterface
+  -
+    name: biotusV2checkoutSaveManagementV1
+    description: ""
+  -
+    name: >
+      biotusV2checkoutRequestApiLogManagementV1
+    description: ""
+  -
+    name: biotusV2checkoutGetItemsManagementV1
+    description: ""
+  -
+    name: >
+      biotusOrderStatusExtendPeriodOrderManagementV1
+    description: >
+      Interface
+      ExtendPeriodOrderManagementInterface
+  -
+    name: >
+      biotusOrderStatusChangeStatusManagementV1
+    description: >
+      Interface
+      ChangeStatusManagementInterface
+  -
+    name: >
+      hyvaOrderCancellationWebapiOrderCancellationV1
+    description: ""
+  -
+    name: mageWorxOrderEditorGetImageManagementV1
+    description: ""
+  -
+    name: mageplazaSmtpCheckoutManagementV1
+    description: Interface for update item information
+paths:
+  /ping:
+    get:
+      summary: Ping endpoint
+      responses:
+        200:
+          description: OK
