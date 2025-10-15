@@ -17,29 +17,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Проверяем доступность Docker
-      - name: Check Docker
-        run: docker --version
-
-      # 3️⃣ Устанавливаем Node.js (для swagger2openapi)
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      # 2️⃣ Устанавливаем Java 18
+      - name: Setup Java 18
+        uses: actions/setup-java@v3
         with:
-          node-version: '20'
+          distribution: 'temurin'
+          java-version: '18'
 
-      # 4️⃣ Устанавливаем swagger2openapi
-      - name: Install swagger2openapi
-        run: npm install -g swagger2openapi
+      # 3️⃣ Устанавливаем Python для валидации
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-      # 5️⃣ Проверяем наличие файлов на runner-е
+      # 4️⃣ Устанавливаем openapi-spec-validator
+      - run: pip install openapi-spec-validator
+
+      # 5️⃣ Проверяем наличие файлов
       - name: Validate OpenAPI/Swagger files
         run: |
-          echo "📁 Проверяем наличие файлов в репозитории..."
-          ls -R spec || (echo "❌ Папка spec не найдена" && exit 1)
-
           BASE_FILE="spec/base/openapi-base.yaml"
           CURRENT_FILE="spec/openapi.yaml"
-
           for f in "$BASE_FILE" "$CURRENT_FILE"; do
             if [ ! -f "$f" ]; then
               echo "❌ Файл не найден: $f"
@@ -52,87 +50,51 @@ jobs:
           done
           echo "✅ Все файлы найдены и не пустые."
 
-      # 6️⃣ Проверка ключа openapi: или swagger:
+      # 6️⃣ Проверяем ключ swagger/openapi
       - name: Validate OpenAPI keys
         run: |
           BASE_FILE="spec/base/openapi-base.yaml"
           CURRENT_FILE="spec/openapi.yaml"
-
           for f in "$BASE_FILE" "$CURRENT_FILE"; do
             if ! grep -qE "^(openapi|swagger):" "$f"; then
               echo "❌ Файл $f не содержит ключа openapi: или swagger:"
               exit 1
             fi
           done
-          echo "✅ Все файлы содержат корректный ключ openapi: или swagger:"
+          echo "✅ Ключи openapi/swagger найдены."
 
-      # 7️⃣ Конвертация Swagger 2.0 → OpenAPI 3.0
-      - name: Convert Swagger 2.0 → OpenAPI 3.0
+      # 7️⃣ Валидируем файлы через openapi-spec-validator
+      - name: Validate OpenAPI spec syntax
         run: |
-          BASE_FILE="spec/base/openapi-base.yaml"
-          CURRENT_FILE="spec/openapi.yaml"
-          BASE_FILE_3="spec/base/openapi-base-3.yaml"
-          CURRENT_FILE_3="spec/openapi-3.yaml"
+          openapi-spec-validator spec/base/openapi-base.yaml
+          openapi-spec-validator spec/openapi.yaml
+          echo "✅ Файлы прошли валидацию."
 
-          swagger2openapi "$BASE_FILE" -o "$BASE_FILE_3"
-          swagger2openapi "$CURRENT_FILE" -o "$CURRENT_FILE_3"
-          echo "✅ Конвертация завершена: $BASE_FILE_3, $CURRENT_FILE_3"
-
-      # 8️⃣ Валидация OpenAPI 3.0 файлов
-      - name: Validate OpenAPI 3.0 spec syntax
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - run: |
-          pip install openapi-spec-validator
-          echo "🔍 Валидируем base file..."
-          openapi-spec-validator spec/base/openapi-base-3.yaml
-          echo "🔍 Валидируем current file..."
-          openapi-spec-validator spec/openapi-3.yaml
-          echo "✅ OpenAPI 3 файлы прошли валидацию."
-
-      # 9️⃣ Проверка доступности файлов внутри контейнера
-      - name: Validate OpenAPI files inside Docker
+      # 8️⃣ Скачиваем openapi-diff-cli 2.1.4
+      - name: Download openapi-diff-cli 2.1.4
         run: |
-          echo "🐳 Проверяем файлы внутри контейнера..."
-          docker run --rm -v ${{ github.workspace }}:/work alpine sh -c "
-            ls -R /work/spec || exit 1
-            for f in /work/spec/base/openapi-base-3.yaml /work/spec/openapi-3.yaml; do
-              if [ ! -f \$f ]; then
-                echo '❌ Файл не найден внутри контейнера: '\$f
-                exit 1
-              fi
-            done
-            echo '✅ Файлы доступны внутри контейнера.'
-          "
+          wget -O openapi-diff-cli.jar https://repo1.maven.org/maven2/org/openapitools/openapi-diff-cli/2.1.4/openapi-diff-cli-2.1.4.jar
 
-      # 🔟 Генерация diff-отчётов
+      # 9️⃣ Генерация diff-отчётов
       - name: Generate OpenAPI Diff Reports
         run: |
-          echo "🚀 Генерируем OpenAPI diff отчёты..."
+          java -jar openapi-diff-cli.jar spec/base/openapi-base.yaml spec/openapi.yaml \
+             markdown > openapi-diff-report.md || true
+          java -jar openapi-diff-cli.jar spec/base/openapi-base.yaml spec/openapi.yaml \
+             html > openapi-diff-report.html || true
 
-          docker run --rm -e JAVA_OPTS="-Dswagger.compat.converter.resolveFully=true" \
-            -v ${{ github.workspace }}:/work openapitools/openapi-diff:2.1.0 \
-            openapi-diff /work/spec/base/openapi-base-3.yaml /work/spec/openapi-3.yaml \
-            markdown --fail-on-incompatible true > ${{ github.workspace }}/openapi-diff-report.md || true
-
-          docker run --rm -e JAVA_OPTS="-Dswagger.compat.converter.resolveFully=true" \
-            -v ${{ github.workspace }}:/work openapitools/openapi-diff:2.1.0 \
-            openapi-diff /work/spec/base/openapi-base-3.yaml /work/spec/openapi-3.yaml \
-            html --fail-on-incompatible true > ${{ github.workspace }}/openapi-diff-report.html || true
-
-      # 1️⃣1️⃣ Показываем первые строки Markdown отчёта
+      # 🔟 Показываем первые строки Markdown отчёта
       - name: Show Diff Report Preview
         if: always()
         run: |
           echo "✅ OpenAPI diff report (first 30 lines):"
-          head -n 30 "${{ github.workspace }}/openapi-diff-report.md" || echo "⚠️ No diff file generated"
+          head -n 30 openapi-diff-report.md || echo "⚠️ No diff file generated"
 
-      # 1️⃣2️⃣ Загружаем отчёты как артефакты
+      # 1️⃣1️⃣ Загружаем отчёты как артефакты
       - name: Upload Diff Reports
         uses: actions/upload-artifact@v4
         with:
           name: openapi-diff-report
           path: |
-            ${{ github.workspace }}/openapi-diff-report.md
-            ${{ github.workspace }}/openapi-diff-report.html
+            openapi-diff-report.md
+            openapi-diff-report.html
