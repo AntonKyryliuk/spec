@@ -24747,7 +24747,7 @@ paths:
       tags:
         - lofMarketPlaceSellerRatingsRepositoryV1
       description: Save Rating
-      operationId: PutV1SellerRatingsRatingId1
+      operationId: PutV1SellerRatingsRatingId
       consumes:
         - application/json
         - application/xml
@@ -25052,7 +25052,7 @@ paths:
       description: >
         Retrieve Seller Ratings matching the
         specified criteria.
-      operationId: GetV1SellerRatingsRatingId1
+      operationId: GetV1SellerRatingsRatingId
       consumes:
         - application/json
         - application/xml
@@ -29665,12 +29665,12 @@ paths:
           description: Unexpected error
           schema:
             $ref: '#/definitions/error-response'
-  /V1/slider/test:
+  /V1/slider:
     get:
       tags:
         - biotusSliderV1
       description: ""
-      operationId: GetV1SliderTest
+      operationId: GetV1Slider
       consumes:
         - application/json
         - application/xml
