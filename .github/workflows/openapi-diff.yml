@@ -71,13 +71,13 @@ jobs:
           echo "✅ OpenAPI файлы прошли валидацию."
 
       # 8️⃣ Скачиваем исходники openapi-diff 2.1.4 и собираем JAR через Maven
-      - name: Download and build openapi-diff-cli
+      - name: Build openapi-diff-cli JAR
         run: |
           wget -O openapi-diff-2.1.4.zip https://github.com/OpenAPITools/openapi-diff/archive/refs/tags/2.1.4.zip
           unzip openapi-diff-2.1.4.zip
-          cd openapi-diff-2.1.4
+          cd openapi-diff-2.1.4/openapi-diff-cli
           ./mvnw clean package -DskipTests
-          cd ..
+          cd ../..
           echo "✅ JAR собран в openapi-diff-2.1.4/openapi-diff-cli/target/openapi-diff-cli-2.1.4-all.jar"
 
       # 9️⃣ Генерация diff-отчётов
