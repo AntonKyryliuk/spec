@@ -33,7 +33,7 @@ jobs:
       # 4️⃣ Устанавливаем openapi-spec-validator
       - run: pip install openapi-spec-validator
 
-      # 5️⃣ Проверяем наличие файлов
+      # 5️⃣ Проверяем наличие файлов OpenAPI
       - name: Validate OpenAPI/Swagger files
         run: |
           BASE_FILE="spec/base/openapi-base.yaml"
@@ -70,32 +70,26 @@ jobs:
           openapi-spec-validator spec/openapi.yaml
           echo "✅ OpenAPI файлы прошли валидацию."
 
-      # 8️⃣ Скачиваем исходники openapi-diff 2.1.4 и собираем JAR через Maven
-      - name: Build openapi-diff-cli JAR
-        run: |
-          wget -O openapi-diff-2.1.4.zip https://github.com/OpenAPITools/openapi-diff/archive/refs/tags/2.1.4.zip
-          unzip openapi-diff-2.1.4.zip
-          cd openapi-diff-2.1.4/openapi-diff-cli
-          ./mvnw clean package -DskipTests
-          cd ../..
-          echo "✅ JAR собран в openapi-diff-2.1.4/openapi-diff-cli/target/openapi-diff-cli-2.1.4-all.jar"
-
-      # 9️⃣ Генерация diff-отчётов
+      # 8️⃣ Генерация diff-отчётов через локальный JAR
       - name: Generate OpenAPI Diff Reports
         run: |
-          java -jar openapi-diff-2.1.4/openapi-diff-cli/target/openapi-diff-cli-2.1.4-all.jar \
-            spec/base/openapi-base.yaml spec/openapi.yaml  markdown > openapi-diff-report.md || true
-          java -jar openapi-diff-2.1.4/openapi-diff-cli/target/openapi-diff-cli-2.1.4-all.jar \
-            spec/base/openapi-base.yaml spec/openapi.yaml  html > openapi-diff-report.html || true
+          JAR_PATH=".github/tools/openapi-diff-cli-2.1.4-all.jar"
+          if [ ! -f "$JAR_PATH" ]; then
+            echo "❌ JAR не найден: $JAR_PATH"
+            exit 1
+          fi
 
-      # 🔟 Показываем первые строки Markdown отчёта
+          java -jar "$JAR_PATH" spec/base/openapi-base.yaml spec/openapi.yaml  markdown > openapi-diff-report.md || true
+          java -jar "$JAR_PATH" spec/base/openapi-base.yaml spec/openapi.yaml  html > openapi-diff-report.html || true
+
+      # 9️⃣ Показываем первые строки Markdown отчёта
       - name: Show Diff Report Preview
         if: always()
         run: |
           echo "✅ OpenAPI diff report (first 30 lines):"
           head -n 30 openapi-diff-report.md || echo "⚠️ No diff file generated"
 
-      # 1️⃣1️⃣ Загружаем отчёты как артефакты
+      # 🔟 Загружаем отчёты как артефакты
       - name: Upload Diff Reports
         uses: actions/upload-artifact@v4
         with:
